@@ -1,0 +1,1 @@
+export interface PaymentProof { orderId: string; paymentId: string; signature: string }

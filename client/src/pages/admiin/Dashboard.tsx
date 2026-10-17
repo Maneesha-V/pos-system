@@ -1,26 +1,16 @@
-import { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
-import api from '../../api/axios';
 import Stat from '../../components/Stat';
-import type { Summary } from '../../types/reportTypes';
-
-const inr = (n: number) => '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
-const ymd = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+import { useFetch } from '../../hooks/useFetch';
+import { reportApi } from '../../api/reportApi';
+import { inr } from '../../utils/format';
+import { lastNDays } from '../../utils/date';
 
 export default function Dashboard() {
-  const [s, setS] = useState<Summary | null>(null);
+  const { data: s, loading } = useFetch(() => reportApi.summary(), [], 'Failed to load dashboard');
 
-  useEffect(() => {
-    api.get<Summary>('/reports/summary').then((r) => setS(r.data)).catch(() => toast.error('Failed to load dashboard'));
-  }, []);
+  if (loading && !s) return <p className="text-gray-400">Loading...</p>;
+  if (!s) return <p className="text-gray-400">No data</p>;
 
-  if (!s) return <p className="text-gray-400">Loading...</p>;
-
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const key = ymd(new Date(Date.now() - (6 - i) * 864e5));
-    const hit = s.daily.find((d) => d._id === key);
-    return { key, total: hit?.total ?? 0 };
-  });
+  const days = lastNDays(7, s.daily);
   const max = Math.max(...days.map((d) => d.total), 1);
 
   return (

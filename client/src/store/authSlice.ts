@@ -1,43 +1,30 @@
-import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
-import api from '../api/axios';
+import { createSlice, createAsyncThunk, type Dispatch, type PayloadAction } from '@reduxjs/toolkit';
+import { authApi } from '../api/authApi';
+import { loadUser, saveSession, clearSession } from '../utils/session';
+import { errMsg } from '../utils/apiError';
 import type { User } from '../types/userTypes';
 
-interface AuthState {
-  user: User | null;
-  loading: boolean;
-  error: string | null;
-}
+interface AuthState { user: User | null; loading: boolean; error: string | null }
 
-const initialState: AuthState = {
-  user: JSON.parse(localStorage.getItem('user') || 'null'),
-  loading: false,
-  error: null,
-};
+const initialState: AuthState = { user: loadUser(), loading: false, error: null };
 
-export const loginUser = createAsyncThunk<
-  User,
-  { username: string; password: string },
-  { rejectValue: string }
->('auth/login', async (creds, { rejectWithValue }) => {
-  try {
-    const { data } = await api.post('/auth/login', creds);
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    return data.user as User;
-  } catch (e: any) {
-    return rejectWithValue(e.response?.data?.message || 'Login failed');
+export const loginUser = createAsyncThunk<User, { username: string; password: string }, { rejectValue: string }>(
+  'auth/login',
+  async (creds, { rejectWithValue }) => {
+    try {
+      const { token, user } = await authApi.login(creds);
+      saveSession(token, user);
+      return user;
+    } catch (e) {
+      return rejectWithValue(errMsg(e, 'Login failed'));
+    }
   }
-});
+);
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
-  reducers: {
-    logout(state) {
-      localStorage.clear();
-      state.user = null;
-    },
-  },
+  reducers: { clearUser: (s) => { s.user = null; s.error = null; } },
   extraReducers: (b) => {
     b.addCase(loginUser.pending, (s) => { s.loading = true; s.error = null; })
      .addCase(loginUser.fulfilled, (s, a: PayloadAction<User>) => { s.loading = false; s.user = a.payload; })
@@ -45,5 +32,10 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout } = authSlice.actions;
+// Same name as before, so `dispatch(logout())` in your layouts keeps working
+export const logout = () => (dispatch: Dispatch) => {
+  clearSession();          // the side effect lives here, not inside a reducer
+  dispatch(authSlice.actions.clearUser());
+};
+
 export default authSlice.reducer;

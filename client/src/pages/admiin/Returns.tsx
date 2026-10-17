@@ -1,13 +1,19 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import toast from 'react-hot-toast';
 import { Plus } from 'lucide-react';
-import api from '../../api/axios';
+import { returnApi } from '../../api/returnApi';
+import { useFetch } from '../../hooks/useFetch';
+import { errMsg } from '../../utils/apiError';
+import { inr } from '../../utils/format';
 import Modal from '../../components/Modal';
-import type { ReturnRec } from '../../types/returnTypes';
 import type { Sale } from '../../types/saleTypes';
 
+const inp = 'w-full rounded-lg border p-2 text-sm';
+
 export default function Returns() {
-  const [list, setList] = useState<ReturnRec[]>([]);
+  const { data, reload } = useFetch(returnApi.list, [], 'Failed to load returns');
+  const list = data ?? [];
+
   const [open, setOpen] = useState(false);
   const [billNo, setBillNo] = useState('');
   const [sale, setSale] = useState<Sale | null>(null);
@@ -16,22 +22,16 @@ export default function Returns() {
   const [reason, setReason] = useState('');
   const [restock, setRestock] = useState(true);
 
-  const load = async () => {
-    try { setList((await api.get<ReturnRec[]>('/returns')).data); }
-    catch { toast.error('Failed to load returns'); }
-  };
-  useEffect(() => { load(); }, []);
-
   const reset = () => { setBillNo(''); setSale(null); setItemId(''); setQty('1'); setReason(''); setRestock(true); };
-  const err = (e: any) => toast.error(e.response?.data?.message || 'Failed');
 
   const lookup = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      const { data } = await api.get<Sale>(`/returns/lookup/${billNo.trim()}`);
-      setSale(data);
-      setItemId(data.items.find((i) => i.qty > i.returnedQty)?._id || '');
-    } catch (x) { setSale(null); err(x); }
+      const s = await returnApi.lookup(billNo.trim());
+      setSale(s);
+      setItemId(s.items.find((i) => i.qty > i.returnedQty)?._id || '');
+      setQty('1');
+    } catch (x) { setSale(null); toast.error(errMsg(x)); }
   };
 
   const item = sale?.items.find((i) => i._id === itemId);
@@ -41,18 +41,17 @@ export default function Returns() {
     e.preventDefault();
     if (!sale || !item) return;
     try {
-      await api.post('/returns', { saleId: sale._id, itemId, qty: +qty, reason, restock });
+      await returnApi.create({ saleId: sale._id, itemId, qty: +qty, reason, restock });
       toast.success('Return processed');
-      setOpen(false); reset(); load();
-    } catch (x) { err(x); }
+      setOpen(false); reset(); reload();
+    } catch (x) { toast.error(errMsg(x)); }
   };
-
-  const inp = 'w-full rounded-lg border p-2 text-sm';
 
   return (
     <div>
       <div className="mb-4 flex justify-end">
-        <button onClick={() => { reset(); setOpen(true); }} className="flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white">
+        <button onClick={() => { reset(); setOpen(true); }}
+          className="flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white">
           <Plus size={16} /> Process return
         </button>
       </div>
@@ -69,7 +68,7 @@ export default function Returns() {
                 <td className="p-3 font-medium">{r.billNo}</td>
                 <td className="whitespace-nowrap p-3">{r.name}</td>
                 <td className="p-3">{r.qty}</td>
-                <td className="p-3">₹{r.refund.toFixed(2)}</td>
+                <td className="p-3">{inr(r.refund)}</td>
                 <td className="p-3">{r.reason}{!r.restocked && ' (not restocked)'}</td>
                 <td className="whitespace-nowrap p-3">{r.processedByName}</td>
               </tr>
@@ -88,7 +87,7 @@ export default function Returns() {
 
           {sale && (
             <form onSubmit={submit} className="space-y-3">
-              <p className="text-xs text-gray-500">{sale.billNo} · {new Date(sale.createdAt).toLocaleDateString()} · ₹{sale.total.toFixed(2)}</p>
+              <p className="text-xs text-gray-500">{sale.billNo} · {new Date(sale.createdAt).toLocaleDateString()} · {inr(sale.total)}</p>
               <select value={itemId} onChange={(e) => { setItemId(e.target.value); setQty('1'); }} className={inp}>
                 {sale.items.map((i) => (
                   <option key={i._id} value={i._id} disabled={i.qty - i.returnedQty < 1}>
@@ -96,7 +95,7 @@ export default function Returns() {
                   </option>
                 ))}
               </select>
-              <input required type="number" min="1" max={left} value={qty} onChange={(e) => setQty(e.target.value)} className={inp} />
+              <input required type="number" min="1" max={left} step="1" value={qty} onChange={(e) => setQty(e.target.value)} className={inp} />
               <p className="text-xs text-gray-500">Returnable: {left}</p>
               <input placeholder="Reason" value={reason} onChange={(e) => setReason(e.target.value)} className={inp} />
               <label className="flex items-center gap-2 text-sm">

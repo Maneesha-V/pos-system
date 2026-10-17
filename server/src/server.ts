@@ -11,11 +11,13 @@ import supplierRoutes from './routes/supplierRoutes';
 import saleRoutes from './routes/saleRoutes';
 import returnRoutes from './routes/returnRoutes';
 import reportRoutes from './routes/reportRoutes';
+import paymentRoutes from './routes/paymentRoutes';
 
 connectDB();
 const app = express();
 app.use(cors({ 
-    origin: process.env.CLIENT_URL || "http://localhost:5173"
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true,
  }));
 app.use(express.json());
 app.use(morgan('dev'));
@@ -27,6 +29,7 @@ app.use('/api/suppliers', supplierRoutes);
 app.use('/api/sales', saleRoutes);
 app.use('/api/returns', returnRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/payments', paymentRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

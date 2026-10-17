@@ -1,55 +1,55 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import toast from 'react-hot-toast';
 import { Download, Plus } from 'lucide-react';
-import api from '../../api/axios';
+import { reportApi } from '../../api/reportApi';
+import { useFetch } from '../../hooks/useFetch';
+import { errMsg } from '../../utils/apiError';
+import { inr } from '../../utils/format';
+import { daysAgo, ymd } from '../../utils/date';
 import Modal from '../../components/Modal';
 import Stat from '../../components/Stat';
-import type { LedgerRow, Summary } from '../../types/reportTypes';
+import type { LedgerRow } from '../../types/reportTypes';
 
-const inr = (n: number) => '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
-const ymd = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+const TYPES = ['sale', 'return', 'purchase', 'payment', 'expense'];
+const inp = 'rounded-lg border bg-white p-2 text-sm';
+
+const toCsv = (rows: LedgerRow[]) => {
+  const q = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+  return [['Date', 'Type', 'Description', 'In', 'Out'].join(',')]
+    .concat(rows.map((r) => [q(new Date(r.createdAt).toLocaleString()), q(r.type), q(r.description), r.credit, r.debit].join(',')))
+    .join('\n');
+};
+
+function download(name: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'text/csv' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function Ledger() {
-  const [from, setFrom] = useState(ymd(new Date(Date.now() - 29 * 864e5)));
+  const [from, setFrom] = useState(daysAgo(29));
   const [to, setTo] = useState(ymd(new Date()));
   const [type, setType] = useState('');
-  const [s, setS] = useState<Summary | null>(null);
-  const [rows, setRows] = useState<LedgerRow[]>([]);
   const [open, setOpen] = useState(false);
   const [exp, setExp] = useState({ description: '', amount: '' });
 
-  const load = async () => {
-    try {
-      const [a, b] = await Promise.all([
-        api.get<Summary>('/reports/summary', { params: { from, to } }),
-        api.get<LedgerRow[]>('/reports/ledger', { params: { from, to, type } }),
-      ]);
-      setS(a.data); setRows(b.data);
-    } catch { toast.error('Failed to load report'); }
-  };
-  useEffect(() => { load(); }, [from, to, type]);
+  const { data, reload } = useFetch(
+    () => Promise.all([reportApi.summary({ from, to }), reportApi.ledger({ from, to, type })]),
+    [from, to, type],
+    'Failed to load report'
+  );
+  const s = data?.[0];
+  const rows = data?.[1] ?? [];
 
   const addExpense = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/reports/expenses', { description: exp.description, amount: +exp.amount });
+      await reportApi.addExpense({ description: exp.description, amount: +exp.amount });
       toast.success('Expense added');
-      setOpen(false); setExp({ description: '', amount: '' }); load();
-    } catch (x: any) { toast.error(x.response?.data?.message || 'Failed'); }
+      setOpen(false); setExp({ description: '', amount: '' }); reload();
+    } catch (x) { toast.error(errMsg(x)); }
   };
-
-  const exportCsv = () => {
-    const q = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
-    const lines = [['Date', 'Type', 'Description', 'In', 'Out'].join(',')].concat(
-      rows.map((r) => [q(new Date(r.createdAt).toLocaleString()), q(r.type), q(r.description), r.credit, r.debit].join(','))
-    );
-    const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
-    const a = document.createElement('a');
-    a.href = url; a.download = `ledger_${from}_to_${to}.csv`; a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const inp = 'rounded-lg border bg-white p-2 text-sm';
 
   return (
     <div className="space-y-4">
@@ -58,10 +58,15 @@ export default function Ledger() {
         <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inp} />
         <select value={type} onChange={(e) => setType(e.target.value)} className={inp}>
           <option value="">All types</option>
-          {['sale', 'return', 'purchase', 'payment', 'expense'].map((t) => <option key={t} value={t}>{t}</option>)}
+          {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
-        <button onClick={() => setOpen(true)} className="ml-auto flex items-center gap-1 rounded-lg border bg-white px-3 py-2 text-sm"><Plus size={16} /> Expense</button>
-        <button onClick={exportCsv} className="flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white"><Download size={16} /> CSV</button>
+        <button onClick={() => setOpen(true)} className="ml-auto flex items-center gap-1 rounded-lg border bg-white px-3 py-2 text-sm">
+          <Plus size={16} /> Expense
+        </button>
+        <button onClick={() => download(`ledger_${from}_to_${to}.csv`, toCsv(rows))}
+          className="flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-2 text-sm text-white">
+          <Download size={16} /> CSV
+        </button>
       </div>
 
       {s && (
