@@ -8,6 +8,7 @@ import { errMsg } from '../../utils/apiError';
 import { inr } from '../../utils/format';
 import Modal from '../../components/Modal';
 import type { Supplier } from '../../types/supplierTypes';
+import { confirmDelete, showSuccess } from '../../utils/alert';
 
 type Mode = null | 'form' | 'purchase' | 'pay';
 const emptyS = { name: '', phone: '', address: '' };
@@ -51,8 +52,14 @@ export default function Suppliers() {
     run(() => supplierApi.pay(sel!._id, +amount), 'Payment recorded');
   };
   const remove = async (s: Supplier) => {
-    if (!confirm(`Delete ${s.name}?`)) return;
-    try { await supplierApi.remove(s._id); toast.success('Deleted'); sup.reload(); }
+    const confirmed = await confirmDelete(s.name);
+    if (!confirmed) return;
+    try { await supplierApi.remove(s._id); 
+      await showSuccess(
+      "Deleted!",
+      `${s.name} has been deleted successfully.`
+      );
+      sup.reload(); }
     catch (e) { toast.error(errMsg(e)); }
   };
 

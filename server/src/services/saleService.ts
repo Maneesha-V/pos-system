@@ -22,7 +22,7 @@ export interface CreateSaleInput {
   staffName: string;
 }
 
-// A payment already used by another bill must never be refunded
+
 const isReusedPayment = (e: any) => e?.code === 11000 && !!e?.keyPattern?.paymentId;
 
 export async function createSale(input: CreateSaleInput) {
@@ -102,7 +102,7 @@ const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export async function listSales(user: UserDoc, query: { from?: string; to?: string; q?: string }) {
   const filter: Record<string, any> = {};
-  if (user.role !== 'admin') filter.staff = user._id; // staff see only their own
+  if (user.role !== 'admin') filter.staff = user._id;
   if (query.from || query.to) {
     filter.createdAt = {};
     if (query.from) filter.createdAt.$gte = dayStart(query.from);

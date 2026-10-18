@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import Modal from './Modal';
 import type { Sale } from '../types/saleTypes';
+import { payLabel } from '../utils/format';
 
 const inr = (n: number) => '₹' + n.toFixed(2);
 
@@ -36,7 +37,7 @@ export default function ReceiptModal({ sale, onClose }: { sale: Sale; onClose: (
         <div className="flex justify-between"><span>GST</span><span>{sale.tax.toFixed(2)}</span></div>
         <div className="flex justify-between"><span>Discount</span><span>-{sale.discount.toFixed(2)}</span></div>
         <div className="flex justify-between text-sm font-bold"><span>TOTAL</span><span>{inr(sale.total)}</span></div>
-        <div>Paid by {sale.paymentMode}</div>
+        <div>Paid by {payLabel(sale)}</div>   
         {sale.paymentMode === 'Cash' && sale.amountReceived > sale.total && (
           <div>Received {inr(sale.amountReceived)} · Change {inr(sale.amountReceived - sale.total)}</div>
         )}

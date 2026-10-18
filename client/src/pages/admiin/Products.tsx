@@ -7,6 +7,7 @@ import { useDebounce } from "../../hooks/useDebounce";
 import { useFetch } from "../../hooks/useFetch";
 import { productApi } from "../../api/productApi";
 import { errMsg } from "../../utils/apiError";
+import { confirmDelete } from "../../utils/alert";
 
 const empty = {
   name: "",
@@ -76,7 +77,8 @@ export default function Products() {
   };
 
   const remove = async (p: Product) => {
-    if (!confirm(`Delete ${p.name}?`)) return;
+    const confirmed = await confirmDelete(p.name);
+    if (!confirmed) return;
     try {
       await productApi.remove(p._id);
       toast.success("Deleted");

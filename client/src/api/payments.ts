@@ -35,7 +35,7 @@ export async function startOnlinePayment(
         resolve({ orderId: r.razorpay_order_id, paymentId: r.razorpay_payment_id, signature: r.razorpay_signature }),
       modal: { ondismiss: () => reject(new Error('Payment cancelled')) },
     });
-    // Do NOT reject here: the customer can retry inside the popup
+
     rz.on('payment.failed', (r: any) => toast.error(r.error?.description || 'Payment failed, try again'));
     rz.open();
   });

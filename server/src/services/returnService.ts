@@ -36,7 +36,7 @@ export async function create(
       const left = item.qty - item.returnedQty;
       if (qty > left) throw new AppError(`Only ${left} can still be returned`);
 
-      // Guarded update: fails if another return changed returnedQty meanwhile
+
       const upd = await Sale.updateOne(
         { _id: sale._id, items: { $elemMatch: { _id: item._id, returnedQty: item.returnedQty } } },
         { $inc: { 'items.$.returnedQty': qty } }, { session });
@@ -44,7 +44,6 @@ export async function create(
 
       if (restock) await Product.updateOne({ _id: item.product }, { $inc: { stock: qty } }, { session });
 
-      // Refund = price + GST, minus this item's share of the bill discount
       const total = sale.total ?? 0;
       const base = (sale.subtotal ?? 0) + (sale.tax ?? 0);
       const ratio = base > 0 ? total / base : 1;

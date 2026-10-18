@@ -1,7 +1,7 @@
 import { Schema, model, Types } from 'mongoose';
 
-export type PayMode = 'Cash' | 'UPI' | 'Card';
-export const PAY_MODES = ['Cash', 'UPI', 'Card'] as const;
+export type PayMode = 'Cash' | 'Online';
+export const PAY_MODES = ['Cash','Online'] as const;
 const itemSchema = new Schema(
   {
     product: { type: Types.ObjectId, ref: 'Product', required: true },

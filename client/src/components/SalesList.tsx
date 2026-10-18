@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { saleApi } from '../api/saleApi';
 import { useFetch } from '../hooks/useFetch';
 import { useDebounce } from '../hooks/useDebounce';
-import { inr } from '../utils/format';
+import { inr, payLabel } from '../utils/format';
 import ReceiptModal from './ReceiptModal';
 import type { Sale } from '../types/saleTypes';
 
@@ -39,7 +39,7 @@ export default function SalesList() {
                 <td className="p-3 font-medium">{s.billNo}</td>
                 <td className="whitespace-nowrap p-3">{new Date(s.createdAt).toLocaleString()}</td>
                 <td className="whitespace-nowrap p-3">{s.staffName}</td>
-                <td className="p-3">{s.paymentMode}</td>
+                <td className="p-3">{payLabel(s)}</td> 
                 <td className="p-3">{inr(s.total)}</td>
                 <td className="p-3"><button onClick={() => setView(s)} className="text-indigo-600">View</button></td>
               </tr>

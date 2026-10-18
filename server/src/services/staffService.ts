@@ -23,7 +23,7 @@ export async function update(
   if (b.username) u.username = b.username;
   if (b.role) u.role = b.role;
   if (typeof b.active === 'boolean') u.active = b.active;
-  if (b.password) u.password = b.password; // re-hashed by the pre-save hook
+  if (b.password) u.password = b.password;
   await u.save();
   return publicUser(u);
 }

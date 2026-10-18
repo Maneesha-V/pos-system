@@ -55,9 +55,12 @@ export default function CartPanel({ totals, mode, onMode, received, onReceived, 
       </div>
 
       <div className="mt-2 flex gap-2">
-        {(['Cash', 'UPI', 'Card'] as const).map((m) => (
+        {(['Cash','Online'] as const).map((m) => (
           <button key={m} onClick={() => onMode(m)}
-            className={`flex-1 rounded-lg border p-2 text-sm ${mode === m ? 'bg-indigo-600 text-white' : ''}`}>{m}</button>
+            className={`flex-1 rounded-lg border p-2 text-sm ${mode === m ? 'bg-indigo-600 text-white' : ''}`}>
+              {/* {m} */}
+              {m === 'Online' ? 'Online (UPI / Card)' : m}
+            </button>
         ))}
       </div>
 

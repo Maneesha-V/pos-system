@@ -58,7 +58,7 @@ export async function summary(from?: string, to?: string) {
 
   const l = (t: string) => led.find((x) => x._id === t)?.total ?? 0;
   const grossProfit = (margin?.v ?? 0) - (sales?.discount ?? 0);
-
+  
   return {
     sales: { total: sales?.total ?? 0, count: sales?.count ?? 0 },
     returns: { total: ret?.total ?? 0, count: ret?.count ?? 0 },

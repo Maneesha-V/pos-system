@@ -60,7 +60,13 @@ export async function pay(supplierId: string, rawAmount: unknown) {
   try {
     await session.withTransaction(async () => {
       const supplier = await Supplier.findOneAndUpdate(
-        { _id: supplierId, balance: { $gte: amount } }, { $inc: { balance: -amount } }, { new: true, session });
+        { 
+          _id: supplierId, 
+          balance: { $gte: amount } 
+        }, 
+        { $inc: 
+          { balance: -amount } 
+        }, { new: true, session });
       if (!supplier) throw new AppError('Amount exceeds pending balance');
       await LedgerEntry.create(
         [{ type: 'payment', description: `Paid ${supplier.name}`, debit: amount, ref: supplier._id }], { session });
