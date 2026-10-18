@@ -1,4 +1,7 @@
+import { Navigate } from "react-router-dom";
+
 export default function MobileFrame() {
+  if (window.innerWidth < 500) return <Navigate to="/admin" replace />;
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-gray-200 p-4">
       <p className="text-sm text-gray-600">Mobile Admin view (log in as admin inside the frame)</p>
